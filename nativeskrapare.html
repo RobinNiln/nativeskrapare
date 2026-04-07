@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nativeskrapare</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f4f1;
+    --bg3: #eceae4;
+    --text: #1a1a1a;
+    --text2: #555;
+    --text3: #888;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --amber: #BA7517;
+    --amber-bg: #FAEEDA;
+    --green: #3B6D11;
+    --red: #A32D2D;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+  .page { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .tagline { font-size: 14px; color: var(--text2); margin-bottom: 2rem; }
+
+  /* API key */
+  .api-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .api-box .field { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 5px; }
+  .api-box label { font-size: 12px; color: var(--text2); }
+  .api-box input { font-size: 13px; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 8px 10px; background: var(--bg2); color: var(--text); width: 100%; }
+  .api-box input:focus { outline: none; border-color: var(--blue); }
+  .api-note { font-size: 11px; color: var(--text3); }
+
+  /* Filter bar */
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+  .filter-label { font-size: 12px; color: var(--text2); }
+  .filter-btn { font-size: 12px; background: var(--bg); border: 0.5px solid var(--border2); border-radius: 20px; padding: 5px 14px; cursor: pointer; color: var(--text2); }
+  .filter-btn:hover { background: var(--bg3); }
+  .filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .geo-info { font-size: 12px; color: var(--blue); background: var(--blue-bg); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 1rem; display: none; line-height: 1.5; }
+  .geo-info.visible { display: block; }
+
+  /* Paper grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .group-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; }
+  .group-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .group-name { font-size: 13px; font-weight: 500; }
+  .badge { font-size: 11px; background: var(--bg2); color: var(--text2); border-radius: 20px; padding: 2px 8px; }
+  .select-all-btn { font-size: 11px; color: var(--blue); cursor: pointer; background: none; border: none; padding: 0; margin-bottom: 6px; text-align: left; }
+  .site-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+  .site-row { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--text2); }
+  .site-row input { cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+  .site-row label { cursor: pointer; line-height: 1.35; }
+  .geo-star { color: var(--amber); font-size: 10px; }
+
+  /* Controls */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: flex-end; }
+  .ctrl { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
+  .ctrl label { font-size: 12px; color: var(--text2); }
+  .ctrl select, .ctrl input[type=number] { font-size: 13px; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 7px 10px; background: var(--bg); color: var(--text); }
+  .btn-run { background: var(--text); color: var(--bg); border: none; border-radius: var(--radius); padding: 0 22px; font-size: 14px; font-weight: 500; cursor: pointer; height: 36px; white-space: nowrap; }
+  .btn-run:hover { opacity: 0.85; }
+  .btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Results */
+  .results-area { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; min-height: 100px; }
+  .res-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .res-title { font-size: 13px; font-weight: 500; }
+  .export-btn { background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 12px; font-size: 12px; color: var(--text2); cursor: pointer; }
+  .export-btn:hover { background: var(--bg2); }
+  .progress-row { font-size: 12px; color: var(--text2); padding: 4px 0; display: flex; align-items: center; gap: 7px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-run { background: var(--amber); animation: pulse 1s infinite; }
+  .dot-ok { background: var(--green); }
+  .dot-err { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 12px 0; }
+  .article-card { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+  .art-group { font-size: 11px; font-weight: 500; color: var(--blue); margin-bottom: 2px; }
+  .art-title { font-size: 13px; margin-bottom: 5px; line-height: 1.4; }
+  .art-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .art-meta span { font-size: 11px; color: var(--text2); }
+  .tag { font-size: 10px; background: var(--amber-bg); color: var(--amber); border-radius: 20px; padding: 2px 8px; font-weight: 500; }
+  .art-url { font-size: 11px; color: var(--blue); word-break: break-all; }
+  .empty { font-size: 13px; color: var(--text3); text-align: center; padding: 2rem 0; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Nativeskrapare</h1>
+  <p class="tagline">Identifierar annonssamarbeten och nativemärkta artiklar hos svenska tidningskoncerner.</p>
+
+  <div class="api-box">
+    <div class="field">
+      <label>Anthropic API-nyckel</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
+    </div>
+    <span class="api-note">Nyckeln används enbart lokalt i din browser och skickas aldrig vidare.</span>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Visa:</span>
+    <button class="filter-btn active" onclick="setFilter('all',this)">Alla tidningar</button>
+    <button class="filter-btn" onclick="setFilter('geo',this)">Nära NTM:s regioner ★</button>
+  </div>
+  <div class="geo-info" id="geoInfo">
+    NTM täcker: Östergötland, norra Småland, Sörmland, Uppland, Gotland, Västerbotten och Norrbotten.
+    Tidningar märkta med ★ täcker samma eller angränsande geografiska områden hos andra mediekoncerner.
+  </div>
+
+  <div class="grid" id="groupGrid"></div>
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Nativemärkning</label>
+      <select id="labelMode">
+        <option value="all">Alla kända märkningar</option>
+        <option value="annonssamarbete">annonssamarbete</option>
+        <option value="native">native</option>
+        <option value="i samarbete med">i samarbete med</option>
+        <option value="sponsrat">sponsrat</option>
+        <option value="annons">annons</option>
+      </select>
+    </div>
+    <div class="ctrl" style="max-width:140px;">
+      <label>Max artiklar per sajt</label>
+      <input type="number" id="maxPerSite" value="10" min="1" max="50" />
+    </div>
+    <button class="btn-run" id="runBtn" onclick="startScrape()">Starta skrapning →</button>
+  </div>
+
+  <div class="results-area" id="resultsArea">
+    <div class="empty">Fyll i API-nyckel, välj sajter och klicka "Starta skrapning".</div>
+  </div>
+</div>
+
+<script>
+const PAPERS = {
+  "Gota Media": [
+    { name: "Borås Tidning", url: "bt.se", geo: false },
+    { name: "Barometern-OT", url: "barometern.se", geo: true },
+    { name: "Blekinge Läns Tidning", url: "blt.se", geo: false },
+    { name: "Smålandsposten", url: "smp.se", geo: true },
+    { name: "Kristianstadsbladet", url: "kristianstadsbladet.se", geo: false },
+    { name: "Norra Skåne", url: "nsk.se", geo: false },
+    { name: "Ystads Allehanda", url: "ystad.se", geo: false },
+    { name: "Trelleborgs Allehanda", url: "trelleborgsallehanda.se", geo: false },
+    { name: "Sydöstran", url: "sydostran.se", geo: true },
+    { name: "Ölandsbladet", url: "olandsbladet.se", geo: true },
+    { name: "Ulricehamns Tidning", url: "ut.se", geo: false },
+    { name: "Kalmar Läns Tidning", url: "klt.se", geo: true },
+    { name: "Växjöbladet Kronobergaren", url: "vaxjobladet.se", geo: true }
+  ],
+  "Erna Media": [
+    { name: "Nya Wermlands-Tidningen", url: "nwt.se", geo: false },
+    { name: "Värmlands Folkblad", url: "vf.se", geo: false },
+    { name: "Skaraborgs Allehanda", url: "sla.se", geo: false },
+    { name: "Mariestads-Tidningen", url: "mariestadstidningen.se", geo: false },
+    { name: "Nya Lidköpings-Tidningen", url: "nlt.se", geo: false },
+    { name: "Dalslänningen", url: "dalslanningen.se", geo: false },
+    { name: "Provinstidningen Dalsland", url: "provinstidningen.se", geo: false },
+    { name: "KT-Kuriren", url: "ktkuriren.se", geo: false },
+    { name: "Filipstads Tidning", url: "filipstadstidning.se", geo: false },
+    { name: "Nya Kristinehamns-Posten", url: "kristinehamnsposten.se", geo: false },
+    { name: "Säffle-Tidningen", url: "saffletidningen.se", geo: false },
+    { name: "Arvika Nyheter", url: "arvikanyheter.se", geo: false },
+    { name: "Fryksdalsbygden", url: "fryksdalsbygden.se", geo: false }
+  ],
+  "Bonnier News Local": [
+    { name: "Sydsvenskan", url: "sydsvenskan.se", geo: false },
+    { name: "Helsingborgs Dagblad", url: "hd.se", geo: false },
+    { name: "Skånska Dagbladet", url: "skanskan.se", geo: false },
+    { name: "Lokaltidningen (Skåne)", url: "lokaltidningen.se", geo: false },
+    { name: "Jönköpings-Posten", url: "jp.se", geo: true },
+    { name: "Smålands-Tidningen", url: "smlandstidningen.se", geo: true },
+    { name: "Vetlanda-Posten", url: "vetlandaposten.se", geo: true },
+    { name: "Tranås Tidning", url: "tranastidning.se", geo: true },
+    { name: "Smålänningen", url: "smalanningen.se", geo: true },
+    { name: "Falköpings Tidning", url: "falkopingstidning.se", geo: false },
+    { name: "Skaraborgs Läns Tidning", url: "slt.se", geo: false },
+    { name: "Göteborgs-Posten", url: "gp.se", geo: false },
+    { name: "Östersunds-Posten", url: "op.se", geo: true },
+    { name: "DalaDemokraten", url: "dalademokraten.se", geo: false },
+    { name: "Arbetarbladet", url: "arbetarbladet.se", geo: false },
+    { name: "Länstidningen Östersund", url: "ltz.se", geo: true },
+    { name: "Örnsköldsviks Allehanda", url: "allehanda.se", geo: true },
+    { name: "Sundsvalls Tidning", url: "st.nu", geo: true },
+    { name: "Tidningen Ångermanland", url: "tidangelmanland.se", geo: true }
+  ],
+  "Schibsted": [
+    { name: "Aftonbladet", url: "aftonbladet.se", geo: false },
+    { name: "Svenska Dagbladet", url: "svd.se", geo: false }
+  ],
+  "Bonnier (rikstäckande)": [
+    { name: "Dagens Nyheter", url: "dn.se", geo: false },
+    { name: "Expressen", url: "expressen.se", geo: false },
+    { name: "Dagens industri", url: "di.se", geo: false }
+  ]
+};
+
+const ALL_LABELS = ["annonssamarbete","i samarbete med","native","sponsrat","annons","advertorial","partnermaterial"];
+let results = [];
+let running = false;
+let currentFilter = 'all';
+
+function key(group) { return group.replace(/[\s()]/g,'_'); }
+
+function buildUI() {
+  const grid = document.getElementById('groupGrid');
+  grid.innerHTML = '';
+  Object.entries(PAPERS).forEach(([group, papers]) => {
+    const k = key(group);
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.id = 'card-' + k;
+    card.innerHTML = `
+      <div class="group-head">
+        <span class="group-name">${group}</span>
+        <span class="badge" id="badge-${k}">${papers.length} sajter</span>
+      </div>
+      <button class="select-all-btn" onclick="toggleAll('${group}',this)">Avmarkera alla</button>
+      <div class="site-list">
+        ${papers.map((p,i) => `
+          <div class="site-row" id="row-${k}-${i}">
+            <input type="checkbox" id="cb-${k}-${i}" checked />
+            <label for="cb-${k}-${i}">${p.name}${p.geo ? ' <span class="geo-star">★</span>' : ''}</label>
+          </div>`).join('')}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function setFilter(mode, btn) {
+  currentFilter = mode;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('geoInfo').classList.toggle('visible', mode === 'geo');
+
+  Object.entries(PAPERS).forEach(([group, papers]) => {
+    const k = key(group);
+    let visibleCount = 0;
+    papers.forEach((p, i) => {
+      const row = document.getElementById(`row-${k}-${i}`);
+      const cb = document.getElementById(`cb-${k}-${i}`);
+      if (!row || !cb) return;
+      if (mode === 'geo') {
+        row.style.display = p.geo ? '' : 'none';
+        cb.checked = p.geo;
+        if (p.geo) visibleCount++;
+      } else {
+        row.style.display = '';
+        cb.checked = true;
+        visibleCount++;
+      }
+    });
+    const card = document.getElementById('card-' + k);
+    const badge = document.getElementById('badge-' + k);
+    if (card) card.style.display = (mode === 'geo' && visibleCount === 0) ? 'none' : '';
+    if (badge) badge.textContent = visibleCount + ' sajter';
+  });
+}
+
+function toggleAll(group, btn) {
+  const k = key(group);
+  const boxes = Array.from(document.querySelectorAll(`[id^="cb-${k}-"]`)).filter(b => {
+    const row = document.getElementById(b.id.replace('cb-','row-'));
+    return row && row.style.display !== 'none';
+  });
+  const allChecked = boxes.every(b => b.checked);
+  boxes.forEach(b => b.checked = !allChecked);
+  btn.textContent = allChecked ? 'Markera alla' : 'Avmarkera alla';
+}
+
+function getSelected() {
+  const sel = [];
+  Object.entries(PAPERS).forEach(([group, papers]) => {
+    const k = key(group);
+    papers.forEach((p, i) => {
+      const cb = document.getElementById(`cb-${k}-${i}`);
+      if (cb && cb.checked) sel.push({ ...p, group });
+    });
+  });
+  return sel;
+}
+
+async function startScrape() {
+  if (running) return;
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('Fyll i din Anthropic API-nyckel först.'); return; }
+  const selected = getSelected();
+  if (!selected.length) { alert('Välj minst en sajt.'); return; }
+
+  running = true;
+  results = [];
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = 'Skrapar…';
+
+  const area = document.getElementById('resultsArea');
+  area.innerHTML = `
+    <div class="res-head">
+      <span class="res-title">Skrapar ${selected.length} sajter…</span>
+      <span id="liveCount" style="font-size:12px;color:var(--text2);">0 artiklar funna</span>
+    </div>
+    <div id="log"></div>
+    <div id="articleList"></div>`;
+
+  const labelMode = document.getElementById('labelMode').value;
+  const labels = labelMode === 'all' ? ALL_LABELS : [labelMode];
+  const maxPer = parseInt(document.getElementById('maxPerSite').value) || 10;
+
+  for (const site of selected) {
+    await scrapeSite(site, labels, maxPer, apiKey);
+  }
+  finalize();
+}
+
+async function scrapeSite(site, labels, max, apiKey) {
+  const log = document.getElementById('log');
+  const row = document.createElement('div');
+  row.className = 'progress-row';
+  row.innerHTML = `<span class="dot dot-run"></span><span>Söker på <strong>${site.name}</strong> (${site.url})…</span>`;
+  log.appendChild(row);
+  row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{
+          role: 'user',
+          content: `Sök igenom sajten ${site.url} (${site.name}, ägs av ${site.group}) och hitta artiklar märkta med nativeannonsmärkningar som: ${labels.join(', ')}. Sök t.ex. site:${site.url} annonssamarbete och liknande. Returnera ENBART en JSON-array med fälten: title, url, advertiser, label, date. Max ${max} poster. Om inget hittas returnera [].`
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const txt = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    let found = [];
+    try {
+      const m = txt.match(/\[[\s\S]*?\]/);
+      if (m) found = JSON.parse(m[0]);
+    } catch(e) {}
+
+    found.forEach(a => results.push({ ...a, site: site.name, group: site.group }));
+    row.innerHTML = `<span class="dot ${found.length > 0 ? 'dot-ok' : 'dot-err'}"></span>${site.name}: <strong>${found.length}</strong> nativeartiklar funna`;
+
+    const lc = document.getElementById('liveCount');
+    if (lc) lc.textContent = `${results.length} artiklar funna`;
+    renderArticles();
+  } catch(e) {
+    row.innerHTML = `<span class="dot dot-err"></span><span style="color:var(--red)">${site.name}: fel – ${e.message}</span>`;
+  }
+}
+
+function renderArticles() {
+  const list = document.getElementById('articleList');
+  if (!list || !results.length) return;
+  list.innerHTML = '<hr class="divider">' + results.map(a => `
+    <div class="article-card">
+      <div class="art-group">${a.group} – ${a.site}</div>
+      <div class="art-title">${a.title || 'Okänd rubrik'}</div>
+      <div class="art-meta">
+        <span class="tag">${a.label || 'native'}</span>
+        ${a.advertiser && a.advertiser !== 'okänt' ? `<span>Annonsör: <strong>${a.advertiser}</strong></span>` : ''}
+        ${a.date ? `<span>${a.date}</span>` : ''}
+      </div>
+      ${a.url ? `<div style="margin-top:5px;"><a class="art-url" href="${a.url}" target="_blank">${a.url}</a></div>` : ''}
+    </div>`).join('');
+}
+
+function finalize() {
+  running = false;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = false;
+  btn.textContent = 'Starta ny skrapning →';
+  const head = document.querySelector('.res-head');
+  if (head) head.innerHTML = `
+    <span class="res-title">Klart — ${results.length} nativeartiklar hittade</span>
+    <button class="export-btn" onclick="exportCSV()">Exportera CSV</button>`;
+  renderArticles();
+}
+
+function exportCSV() {
+  if (!results.length) return;
+  const headers = ['Grupp','Sajt','Rubrik','Annonsör','Märkning','Datum','URL'];
+  const rows = results.map(r =>
+    [r.group, r.site, r.title||'', r.advertiser||'', r.label||'', r.date||'', r.url||'']
+    .map(v => `"${String(v).replace(/"/g,'""')}"`)
+    .join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = 'nativeartiklar.csv';
+  a.click();
+}
+
+buildUI();
+</script>
+</body>
+</html>
